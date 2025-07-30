@@ -1,8 +1,8 @@
 package com.sharad.blesetup
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
-import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -16,7 +16,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,24 +28,80 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.sharad.blesetup.ui.theme.BLESetupTheme
-import com.yucheng.ycbtsdk.BuildConfig
 import com.yucheng.ycbtsdk.Constants
 import com.yucheng.ycbtsdk.YCBTClient
 import com.yucheng.ycbtsdk.bean.ScanDeviceBean
-import com.yucheng.ycbtsdk.gatt.Reconnect
 import com.yucheng.ycbtsdk.response.BleConnectResponse
+import com.yucheng.ycbtsdk.response.BleDataResponse
+import com.yucheng.ycbtsdk.response.BleRealDataResponse
 import com.yucheng.ycbtsdk.response.BleScanResponse
 import kotlinx.coroutines.delay
+import java.util.HashMap
 
 class MainActivity : ComponentActivity() {
 
+    val list = mutableListOf<ScanDeviceBean>()
+
+    @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        YCBTClient.initClient(applicationContext,true, true)
+        YCBTClient.startScanBle(object : BleScanResponse {
+            override fun onScanResponse(i: Int, scanDeviceBean: ScanDeviceBean?) {
+                if (scanDeviceBean != null) {
+                    Log.d("BEEEE", scanDeviceBean?.device?.name ?: "")
+                    Log.d("BEEEE", "Device Mac" + scanDeviceBean.deviceMac)
+                    list.add(scanDeviceBean)
+                    YCBTClient.connectBle(scanDeviceBean.deviceMac, object : BleConnectResponse {
+                        override fun onConnectResponse(p0: Int) {
+                            Log.d("BEEEE", p0.toString())
+                            Constants.BLEState.Disconnect
+                        }
+                    });
+                }
+            }
+        }, 1000)
 
+
+        YCBTClient.registerBleStateChange(object : BleConnectResponse {
+            override fun onConnectResponse(code: Int) {
+                Log.d("BEEE", code.toString())
+                if (code == 10) {
+
+                    val dataResponse = object : BleDataResponse {
+                        override fun onDataResponse(
+                            p0: Int,
+                            p1: Float,
+                            p2: HashMap<*, *>?
+                        ) {
+                            Log.d("BEEE onDataResponse", "$p0 p1 $p1 map $p2")
+                        }
+                    }
+                    YCBTClient.settingTemperatureMonitor(true, 100000, dataResponse);
+                }
+            }
+        })
+
+//        YCBTClient.settingHandWear(Constants.HandWear.Left, object : BleDataResponse {
+//            override fun onDataResponse(
+//                p0: Int,
+//                p1: Float,
+//                p2: HashMap<*, *>?
+//            ) {
+//                TODO("Not yet implemented")
+//            }
+//        })
+
+//        YCBTClient.appEcgTestStart(dataResponse, object : BleRealDataResponse {
+//
+//
+//            override fun onRealDataResponse(p0: Int, p1: HashMap<*, *>?) {
+//                Log.d("BEEE onRealDataResponse", "$p0 p1  map $p1")
+//            }
+//        });
         requestBluetoothPermissions(this)
         enableEdgeToEdge()
         setContent {

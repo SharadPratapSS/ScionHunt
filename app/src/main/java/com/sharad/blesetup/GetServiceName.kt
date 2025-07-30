@@ -1,5 +1,7 @@
 package com.sharad.blesetup
 
+import android.util.Log
+
 fun getServiceName(uuid: String): String{
     val bleServiceNames = mapOf(
         "1811" to "Alert Notification Service",
@@ -72,14 +74,16 @@ fun getServiceName(uuid: String): String{
         "181C" to "User Data Service",
         "1844" to "Volume Control Service",
         "1845" to "Volume Offset Control Service",
-        "181D" to "Weight Scale Service"
+        "181D" to "Weight Scale Service",
+        "FE59" to "dasd"
     )
 
     val regex = Regex("^0000([0-9a-fA-F]{4})-0000-1000-8000-00805f9b34fb$")
     val match = regex.matchEntire(uuid.lowercase())
     if (match != null) {
         val uuid16 = match.groupValues[1].uppercase()
-        return bleServiceNames[uuid16]!!
+        Log.d("UUID16", "UUID16: $uuid16")
+        return ""
     }
     return "Unknown Device"
 }
