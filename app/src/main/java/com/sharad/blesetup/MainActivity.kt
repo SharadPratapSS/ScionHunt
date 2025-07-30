@@ -2,6 +2,7 @@ package com.sharad.blesetup
 
 import android.Manifest
 import android.app.Activity
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -20,6 +21,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +40,7 @@ import com.yucheng.ycbtsdk.bean.ScanDeviceBean
 import com.yucheng.ycbtsdk.gatt.Reconnect
 import com.yucheng.ycbtsdk.response.BleConnectResponse
 import com.yucheng.ycbtsdk.response.BleScanResponse
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
@@ -45,16 +48,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         requestBluetoothPermissions(this)
-
-        YCBTClient.initClient(applicationContext, true, BuildConfig.DEBUG)
-        Reconnect.getInstance().init(applicationContext,true)
-
-
         enableEdgeToEdge()
         setContent {
             BLESetupTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    BleConnect()
+                    GattAndroid()
                 }
             }
         }
@@ -66,6 +64,24 @@ fun BleConnect(){
 
     var bck by remember { mutableStateOf(Color.White) }
     var bleDevices by remember { mutableStateOf(emptyList<ScanDeviceBean>()) }
+    var disableSearch by remember { mutableStateOf(false) }
+
+
+    LaunchedEffect(Unit) {
+        while (true){
+            delay(5000)
+            Log.d("Device Results:", "Connection Status: ${YCBTClient.connectState()}")
+        }
+    }
+
+    LaunchedEffect(disableSearch) {
+        if (disableSearch){
+            delay(10000)
+            YCBTClient.stopScanBle()
+            Log.d("Device Results:", "Scan Stopped")
+            disableSearch = false
+        }
+    }
     Box(modifier = Modifier
         .fillMaxSize()
         .background(bck), contentAlignment = Alignment.Center){
@@ -73,10 +89,10 @@ fun BleConnect(){
         Column() {
             Button(onClick = {
                 bleDevices = emptyList()
-                YCBTClient.stopScanBle()
                 StartSearch() {
                     bleDevices = bleDevices + it
                 }
+                disableSearch = true
             }) {
                 Text("Start Search")
             }
@@ -88,6 +104,7 @@ fun BleConnect(){
                                 YCBTClient.disconnectBle()
                                 YCBTClient.stopScanBle()
                                 YCBTClient.connectBle(it.deviceMac,object : BleConnectResponse{
+
                                     override fun onConnectResponse(p0: Int) {
                                         when (p0) {
                                             Constants.BLEState.ReadWriteOK -> {
@@ -128,21 +145,15 @@ fun BleConnect(){
 
 fun StartSearch(onSearch: (ScanDeviceBean)-> Unit){
     Log.d("Device Results:", "Starting Scan")
-    YCBTClient.startScanBle(object: BleScanResponse{
-        override fun onScanResponse(
-            p0: Int,
-            p1: ScanDeviceBean?,
-        ) {
-            if (p1 != null){
-                val mac = p1.deviceMac
-                val name = p1.deviceName
-                val rssi = p1.deviceRssi
-                val bluetoothDevice = p1.device
-                onSearch(p1)
-                Log.d("Device Results:", "Mac: $mac, Name: $name, RSSI: $rssi")
-            }
+    YCBTClient.startScanBle(BleScanResponse { p0, p1 ->
+        if (p1 != null){
+            val mac = p1.deviceMac
+            val name = p1.deviceName
+            val rssi = p1.deviceRssi
+            val bluetoothDevice = p1.device
+            onSearch(p1)
+            Log.d("Device Results:", "Mac: $mac, Name: $name, RSSI: $rssi")
         }
-
     },6)
 }
 
