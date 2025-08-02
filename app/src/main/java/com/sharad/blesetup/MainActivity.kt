@@ -49,23 +49,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         YCBTClient.initClient(applicationContext,true, true)
-        YCBTClient.startScanBle(object : BleScanResponse {
-            override fun onScanResponse(i: Int, scanDeviceBean: ScanDeviceBean?) {
-                if (scanDeviceBean != null) {
-                    Log.d("BEEEE", scanDeviceBean?.device?.name ?: "")
-                    Log.d("BEEEE", "Device Mac" + scanDeviceBean.deviceMac)
-                    list.add(scanDeviceBean)
-                    YCBTClient.connectBle(scanDeviceBean.deviceMac, object : BleConnectResponse {
-                        override fun onConnectResponse(p0: Int) {
-                            Log.d("BEEEE", p0.toString())
-                            Constants.BLEState.Disconnect
-                        }
-                    });
-                }
-            }
-        }, 1000)
-
-
+//        YCBTClient.startScanBle(object : BleScanResponse {
+//            override fun onScanResponse(i: Int, scanDeviceBean: ScanDeviceBean?) {
+//                if (scanDeviceBean != null) {
+//                    Log.d("BEEEE", scanDeviceBean?.device?.name ?: "")
+//                    Log.d("BEEEE", "Device Mac" + scanDeviceBean.deviceMac)
+//                    list.add(scanDeviceBean)
+//                    YCBTClient.connectBle(scanDeviceBean.deviceMac, object : BleConnectResponse {
+//                        override fun onConnectResponse(p0: Int) {
+//                            Log.d("BEEEE", p0.toString())
+//                            Constants.BLEState.Disconnect
+//                        }
+//                    });
+//                }
+//            }
+//        }, 1000)
+//
+//
         YCBTClient.registerBleStateChange(object : BleConnectResponse {
             override fun onConnectResponse(code: Int) {
                 Log.d("BEEE", code.toString())
